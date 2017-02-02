@@ -10,6 +10,7 @@ output: html_document
 1. Create working directory
 2. Download lastest .Rda files folder from server (r_files) and place in working directory
 3. Create RStudio project in working directory
+4. Check
 
 # Libraries
 

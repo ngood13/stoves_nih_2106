@@ -1,6 +1,6 @@
 ---
-title: "background analysis template"
-author: "Nicholas Good"
+title: "background analysis smps"
+author: "Nicholas Good edited by Kelsey Bilsback"
 date: "12/15/2016"
 output: html_document
 ---
@@ -17,6 +17,7 @@ The dataset has been optimized to work with `tidyverse`. It is strongly recommen
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   library(tidyverse)
+  library(wesanderson)
 ```
 
 # Source files
@@ -42,8 +43,8 @@ The dataset has been optimized to work with `tidyverse`. It is strongly recommen
 * Next we'll load the pollutant data we're interested in. In this case we're going to look at the CO2 data:
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
-  load("../r_files/fivegas_merged.Rda")
-  pol_data <- dplyr::filter(fivegas_merged, pol == "co2")
+  load("../r_files/smps_ultrafine_bkgd.Rda")
+  pol_data <- dplyr::filter(smps_ultrafine_bkgd, pol == "ufp_conc")
 ```
 
 # Extract data
@@ -52,18 +53,18 @@ The dataset has been optimized to work with `tidyverse`. It is strongly recommen
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   times_pre <- dplyr::filter(test_times,
-                             var == "bg_pre_start_fivegas" | var == "bg_pre_end_fivegas") %>%
+                             var == "bg_pre_start_pax_smps" | var == "bg_pre_end_pax_smps") %>%
                tidyr::spread(var, value) %>%
                dplyr::select(-date) %>%
-               dplyr::rename(start = bg_pre_start_fivegas,
-                             end = bg_pre_end_fivegas)
+               dplyr::rename(start = bg_pre_start_pax_smps,
+                             end = bg_pre_end_pax_smps)
 
   times_post <- dplyr::filter(test_times,
-                             var == "bg_post_start_fivegas" | var == "bg_post_end_fivegas") %>%
+                             var == "bg_post_start_pax_smps" | var == "bg_post_end_pax_smps") %>%
                tidyr::spread(var, value) %>%
                dplyr::select(-date) %>%
-               dplyr::rename(start = bg_post_start_fivegas,
-                             end = bg_post_end_fivegas)
+               dplyr::rename(start = bg_post_start_pax_smps,
+                             end = bg_post_end_pax_smps)
 
 ```
 
@@ -126,14 +127,66 @@ Calculate mean pollutant value for each period
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   background_means <- dplyr::group_by(background_data, id, type) %>%
-                      dplyr::summarise(mean = mean(val))
+                      dplyr::summarise(mean = mean(val), date = first(date),
+                                       time = first(time))
 ```
 
-* Plot
+* Compare test conc to background conc
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12, fig.height=8}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12, fig.height=8}
   ggplot(background_means, aes(id, mean, colour = type)) +
          geom_point() +
-         ggtitle("CO2") +
-         theme_minimal()
+         ggtitle("Ultrafine Particles (dp < 100 nm)") +
+         theme_minimal() +
+         xlab("test id") +
+         ylab("concentration") + 
+         scale_color_manual(values=wes_palette(n=3, name="GrandBudapest")) +
+         theme(axis.text.x = element_text(angle=90, hjust=1))
+```
+
+* Sort by time of day
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12, fig.height=8}
+  background_time <- dplyr::filter(background_means, type != "sample")
+
+  ggplot(background_time, aes(time, mean, colour = type)) +
+         geom_point() +
+         ggtitle("Ultrafine Particles (dp < 100 nm)") +
+         theme_minimal() +
+         xlab("test id") +
+         ylab("concentration") +
+         scale_color_manual(values=wes_palette(n=3, name="GrandBudapest")) +
+         theme(axis.text.x = element_text(angle=45, hjust=1))
+```
+
+* ratio of pre to post background
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12, fig.height=8}
+  background_ratio <- dplyr::select(background_means, id, type, mean) %>%
+                      tidyr::spread(type, mean) %>%
+                      dplyr::mutate(bkgd_ratio = pre/post, 
+                                    bkgd_avg = (pre + post)/2,
+                                    bkgd_sample_ratio = sample/bkgd_avg)
+                      
+  ggplot(background_ratio, aes(id, bkgd_ratio)) +
+         geom_point() +
+         ggtitle("Ultrafine Particles (dp < 100 nm)") +
+         theme_minimal() +
+         xlab("test id") +
+         ylab("pre to post background ratio") +
+         scale_color_manual(values=wes_palette(n=3, name="GrandBudapest")) +
+         theme(axis.text.x = element_text(angle=45, hjust=1))
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 6, fig.height=8}
+    ggplot(background_ratio, aes(x = 1, y = bkgd_sample_ratio)) +
+         
+         geom_dotplot(binaxis = "y", stackdir = "center") +
+         ggtitle("Ultrafine Particles (dp < 100 nm)") +
+         theme_minimal() +
+         scale_y_log10() +
+         xlab("") +
+         ylab("average background to sample ratio") +
+         scale_color_manual(values=wes_palette(n=3, name="GrandBudapest")) +
+         theme(axis.text.x = element_blank())
 ```
