@@ -1,5 +1,5 @@
 ---
-title: "background analysis template"
+title: "background analysis smps"
 author: "Nicholas Good edited by Kelsey Bilsback"
 date: "12/15/2016"
 output: html_document
