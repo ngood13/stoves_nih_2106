@@ -197,19 +197,6 @@ Filter out bad tests
 
   samples <- dplyr::select(samples, id, stove, fuel, fuelcat, stovecat)
 
-# change factor order
-  samples$stove <- factor(samples$stove, levels = c("Three Stone Fire (Artisan)", "Clay Ring (Artisan)",
-                          "Built-in Justa (Envirofit, HM5000)", "Rocket Elbow (Envirofit, G3300)",
-                          "Fan Rocket Elbow (Biolite, HomeStove)", "Ceramic Charcoal (Artisan)",
-                          "Metal Charcoal (Burn, Jikokoa)", "Gasifier (Philips, HD4012)",
-                          "Gasifer (Mimi Moto, Mimi Moto)",
-                          "Gasifier (Envirofit, Prototype)", "Wick Kerosene (Cook 'n Lite, 82)",
-                          "Pressurized Kerosene (Butterfly, 2412)", "Pressurized LPG (WokSmith, WS-C1-25K)"))
-    
-  samples$fuel <- factor(samples$fuel, levels = c("Douglas Fir", "Oak", "Eucalyptus", "Lump Hardwood (Sm.)",
-                        "Lump Hardwood (Med.)", "Coconut Charcoal", "West Slope Pellets", "Eucalyptus Pellets",
-                        "Kerosene", "Liquefied Petroleum Gas"))
-
   voc_p <- dplyr::left_join(voc_merged, samples, by = "id") %>%
            dplyr::mutate(pol = sub("^voc_", "", pol)) %>%
            dplyr::mutate(id = as.factor(id))
@@ -218,18 +205,18 @@ Filter out bad tests
   voc_p <- dplyr::filter(voc_p, ppb > 0 & grepl("^P", id)==FALSE & grepl("^G", id)==FALSE)
 ```
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width=20, fig.height=250, fig.show='hide'}
-  #ggplot(voc_p, aes(id, ppb, colour = fuel)) + 
-         #geom_point() +
-         #facet_wrap(~pol, ncol = 1, scales = "free") +
-         #theme_minimal() +
-         #theme(legend.position = "top") +
-         #ylab("ug/m3") + xlab("")
+```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, eval= FALSE, fig.width=20, fig.height=250, fig.show='hide'}
+  ggplot(voc_p, aes(id, ppb, colour = fuel)) + 
+         geom_point() +
+         facet_wrap(~pol, ncol = 1, scales = "free") +
+         theme_minimal() +
+         theme(legend.position = "top") +
+         ylab("ug/m3") + xlab("")
 ```
 
 ## Plot QC
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width=20, fig.height=250, fig.show='hide'}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, eval= FALSE, fig.width=20, fig.height=250, fig.show='hide'}
   #ggplot(voc_p, aes(id, ppb, colour = qc)) + 
          #geom_point() +
          #facet_wrap(~pol, ncol = 1, scales = "free") +
@@ -261,12 +248,14 @@ Filter out bad tests
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   pol_p <- dplyr::mutate(pol_p, mass_ef = 
                            (mass_emitted * 1e-3) / (mass_fuel*1e-3)) %>% # mg/kg
-           dplyr::mutate(energy_ef = (mass_ef*1e-3)*(lhv*1e-3)) # g/MJ
+           dplyr::mutate(energy_ef = (mass_ef*1e-3)*(lhv*1e-3)) %>% # g/MJ
+           dplyr::mutate(stove_fuel = paste(stove, ":", fuel))
            
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   summary(pol_p$mass_ef)
+  summary(pol_p$energy_ef)
 ```
 
 * units: miligram of pollutant emitted per kilogram of fuel burned 
@@ -277,16 +266,26 @@ Filter out bad tests
   ggplot(pol_p, aes(x = id, mass_ef, colour = fuelcat)) +
     geom_point() +
     ggtitle(paste(pol_name, "ef by test id")) +
-    xlab("Test ID") +
+    xlab("test id") +
     ylab("mg emitted / kg fuel burned") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45))
 ```
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12}
+  ggplot(pol_p, aes(x = stove_fuel, mass_ef, colour = stove)) +
+    geom_point() +
+    ggtitle(paste(pol_name, "ef by replicate categories")) +
+    xlab("test id") +
+    ylab("mg emitted / kg fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+```
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
   ggplot(pol_p, aes(x = stove, mass_ef, colour = fuel)) +
     geom_point() +
-    ggtitle(paste(pol_name, "ef by stove type")) +
+    ggtitle(paste(pol_name, "ef by stove")) +
     xlab("stove type") +
     ylab("mg emitted / kg fuel burned") +
     theme_minimal() +
@@ -294,10 +293,21 @@ Filter out bad tests
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-  ggplot(pol_p, aes(x= stove, mass_ef, colour = stovecat)) +
+  ggplot(pol_p, aes(x = stove, mass_ef, colour = fuel)) +
+    geom_point() +
+    facet_grid( ~ stovecat, scales = 'free') +
+    ggtitle(paste(pol_name, "ef by stove")) +
+    xlab("stove type") +
+    ylab("mg emitted / kg fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
+  ggplot(pol_p, aes(x = stove, mass_ef, colour = stovecat)) +
     geom_point() +
     facet_grid( ~ fuelcat, scales = 'free') +
-    ggtitle(paste(pol_name, "ef by stove and fuel type")) +
+    ggtitle(paste(pol_name, "ef by fuel and stove")) +
     xlab("stove type") +
     ylab("mg emitted / kg fuel burned") +
     theme_minimal() +
@@ -305,21 +315,10 @@ Filter out bad tests
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-  ggplot(pol_p, aes(x= id, mass_ef, colour = fuel)) +
-    geom_point() +
-    facet_wrap(fuelcat ~ stovecat) +
-    ggtitle(paste(pol_name, "ef by stove and fuel categories")) +
-    xlab("stove type") +
-    ylab("mg emitted / kg fuel burned") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-```
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-  ggplot(filter(pol_p, fuelcat == 'wood'), aes(x= id, mass_ef, colour = fuel)) +
+  ggplot(filter(pol_p, fuelcat == 'wood'), aes(x = id, mass_ef, colour = fuel)) +
     geom_point() +
     facet_grid( ~ stove, scales = 'free') +
-    ggtitle(paste(pol_name, "by stove type (wood stoves only)")) +
+    ggtitle(paste(pol_name, "ef by stove type (wood only)")) +
     xlab("stove type") +
     ylab("mg emitted / kg fuel burned") +
     theme_minimal() +
@@ -327,14 +326,14 @@ Filter out bad tests
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x= id, mass_ef, colour = fuel)) +
-  geom_point() +
-  facet_grid( ~ stove, scales = 'free') +
-  ggtitle(paste(pol_name, "by stove type (charcoal stoves only)")) +
-  xlab("stove type") +
-  ylab("mg emitted / kg fuel burned") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x = id, mass_ef, colour = fuel)) +
+    geom_point() +
+    facet_grid( ~ stove, scales = 'free') +
+    ggtitle(paste(pol_name, "ef by stove type (charcoal only)")) +
+    xlab("stove type") +
+    ylab("mg emitted / kg fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 # Energy based emissions factor plots 
@@ -343,16 +342,26 @@ ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x= id, mass_ef, colour = fuel))
   ggplot(pol_p, aes(x = id, energy_ef, colour = fuelcat)) +
     geom_point() +
     ggtitle(paste(pol_name, "ef by test id")) +
-    xlab("Test ID") +
+    xlab("test id") +
     ylab("g emitted / MJ fuel burned") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45))
 ```
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 12}
+  ggplot(pol_p, aes(x = stove_fuel, energy_ef, colour = stove)) +
+    geom_point() +
+    ggtitle(paste(pol_name, "ef by replicate categories")) +
+    xlab("test id") +
+    ylab("g emitted / MJ fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+```
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
   ggplot(pol_p, aes(x = stove, energy_ef, colour = fuel)) +
     geom_point() +
-    ggtitle(paste(pol_name, "ef by stove type")) +
+    ggtitle(paste(pol_name, "ef by stove")) +
     xlab("stove type") +
     ylab("g emitted / MJ fuel burned") +
     theme_minimal() +
@@ -360,50 +369,60 @@ ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x= id, mass_ef, colour = fuel))
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-  ggplot(filter(pol_p, fuelcat == 'wood'), aes(x= id, energy_ef, colour = fuel)) +
+  ggplot(pol_p, aes(x = stove, energy_ef, colour = fuel)) +
+    geom_point() +
+    facet_grid( ~ stovecat, scales = 'free') +
+    ggtitle(paste(pol_name, "ef by stove")) +
+    xlab("stove type") +
+    ylab("g emitted / MJ fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
+  ggplot(pol_p, aes(x = stove, energy_ef, colour = stovecat)) +
+    geom_point() +
+    facet_grid( ~ fuelcat, scales = 'free') +
+    ggtitle(paste(pol_name, "ef by fuel and stove")) +
+    xlab("stove type") +
+    ylab("g emitted / MJ fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45,  hjust = 0.9))
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
+  ggplot(filter(pol_p, fuelcat == 'wood'), aes(x = id, energy_ef, colour = fuel)) +
     geom_point() +
     facet_grid( ~ stove, scales = 'free') +
-    ggtitle(paste(pol_name, "by stove type (wood stoves only)")) +
+    ggtitle(paste(pol_name, "ef by stove type (wood only)")) +
     xlab("stove type") +
     ylab("g emitted / MJ fuel burned") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10}
-ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x= id, energy_ef, colour = fuel)) +
+  ggplot(filter(pol_p, fuelcat == 'charcoal'), aes(x = id, energy_ef, colour = fuel)) +
+    geom_point() +
+    facet_grid( ~ stove, scales = 'free') +
+    ggtitle(paste(pol_name, "ef by stove type (charcoal only)")) +
+    xlab("stove type") +
+    ylab("g emitted / MJ fuel burned") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## Additional plots (hidden)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10, fig.show = 'hide'}
+ggplot(pol_p, aes(x = id, mass_ef, colour = fuel)) +
   geom_point() +
-  facet_grid( ~ stove, scales = 'free') +
-  ggtitle(paste(pol_name, "by stove type (charcoal stoves only)")) +
+  facet_wrap(fuelcat ~ stovecat) +
+  ggtitle(paste(pol_name, "ef by stove and fuel categories")) +
   xlab("stove type") +
-  ylab("g emitted / MJ fuel burned") +
+  ylab("mg emitted / kg fuel burned") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-```
-
-## Additional plots (not shown)
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10, fig.show='hide'}
-  ggplot(pol_p, aes(x= stove, mass_ef, colour = fuel)) +
-    geom_point() +
-    facet_grid( ~ stovecat, scales = 'free') +
-    ggtitle(paste(pol_name, "ef by stove type")) +
-    xlab("stove type") +
-    ylab("mg emitted / MJ fuel burned") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-```
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 10, fig.show='hide'}
-  ggplot(pol_p, aes(x= stove, energy_ef, colour = stovecat)) +
-    geom_point() +
-    facet_grid( ~ fuelcat, scales = 'free') +
-    ggtitle(paste(pol_name, "ef by stove and fuel type")) +
-    xlab("stove type") +
-    ylab("mg emitted / MJ fuel burned") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45,  hjust = 0.9))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
 $VOCs$ were measured for `r length(unique(voc_merged$id))` experiments between `r min(voc_merged$date, na.rm = TRUE)` and `r max(voc_merged$date, na.rm = TRUE)`. There is no $VOC$ data for tests: `r setdiff(as.character(samples$id), as.character(voc_merged$id))`.
