@@ -182,7 +182,7 @@ plot_ef <- function(df, pol_name, type, pol){
              axis.text.x = element_text(angle = 45, vjust = 1.18, hjust = 1, size=7.5),
              panel.spacing = unit(2, "lines"))
 
-  p2 <- ggplot(pol_p, aes(x = stove, y = y_units, colour = fuel)) +
+  p2 <- ggplot(df, aes(x = stove, y = y_units, colour = fuel)) +
         geom_point(size = 1) +
         facet_grid(pol ~ stovecat, scales = 'free') +
         ggtitle(paste(pol_name, "ef by stove type")) +
@@ -193,7 +193,7 @@ plot_ef <- function(df, pol_name, type, pol){
               axis.text.x = element_text(angle = 45, vjust = 1.1, hjust = 1, size=10),
               panel.spacing = unit(2, "lines"))
   
-  p3 <- ggplot(pol_p, aes(x = fuel, y = y_units, colour = stove)) +
+  p3 <- ggplot(df, aes(x = fuel, y = y_units, colour = stove)) +
     geom_point(size = 1) +
     facet_grid(pol ~ fuelcat, scales = 'free') +
     ggtitle(paste(pol_name, "ef by fuel type")) +
