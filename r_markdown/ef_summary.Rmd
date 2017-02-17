@@ -57,13 +57,26 @@ output:
 
 * emissions are given in units of miligrams per kilogram of fuel burned and grams per MJ delivered by the fuel
 
-# Carbon dioxide, carbon monoxide, and methane
+# CO data
 
 * Plot emissions factors by mass, energy of fuel and energy delivered
-* Print summary statistics of each type of emission factor
-* Print a table of outliers
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 14,  fig.height = 10}
-  plot_ef(dplyr::filter(emissions, grepl('^co2|^co|^ch4', pol)), 'gaseous pollutants', "mass")
-  plot_ef(dplyr::filter(emissions, grepl('^co2|^co|^ch4', pol)), 'gaseous pollutants', "mass")
+  plot_mass_ef(dplyr::filter(emissions, grepl('^co2|^co|^ch4', pol)), 'PM', "mass")
+```
+
+# PM data
+
+* Plot emissions factors by mass, energy of fuel and energy delivered
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 14,  fig.height = 5}
+  plot_mass_ef(dplyr::filter(emissions, grepl('grav', pol)), 'PM', "mass")
+```
+
+# VOC data
+
+* Plot emissions factors by mass, energy of fuel and energy delivered
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width = 14,  fig.height = 10}
+  plot_mass_ef(dplyr::filter(emissions, grepl('^voc_benzene|^voc_toluene', pol)), 'VOCs', "mass")
 ```
