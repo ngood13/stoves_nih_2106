@@ -1,0 +1,164 @@
+---
+title: "Test CO/2"
+author: "Tom Cole-Hunter"
+date: "February 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown test [http://rmarkdown.rstudio.com]
+
+Here we: (1) set working directory; (2) load data, of emissions, sample metadata and fuel-use metadata, and; (3) calculate and plot emission factors (EFs).
+
+```{r load}
+library(tidyverse)
+library(forcats)
+
+setwd("C:/Users/tchunter/Desktop/stoves_nih_2016/r_files") 
+
+load("../r_files/emissions.Rda")
+colnames(emissions)
+
+load("../r_files/samples.Rda")
+colnames(samples)
+
+load("../r_files/fuel_burnt.Rda")
+colnames(fuel_burnt)
+```
+
+## Selecting pollutant of interest
+
+First we select CO, and then CO2...
+
+```{r select}
+co_db <- dplyr::filter(emissions, pol == "co")
+co_db <- dplyr:: left_join(co_db,
+                        dplyr::select(samples, id, fuel, stove, fuelcat, stovecat),
+                        by = "id") %>%
+      dplyr::left_join(fuel_burnt, by = "id")
+summary(co_db)
+
+co2_db <- dplyr::filter(emissions, pol == "co2")
+co2_db <- dplyr:: left_join(co2_db,
+                         dplyr::select(samples, id, fuel, stove, fuelcat, stovecat),
+                         by = "id") %>%
+        dplyr::left_join(fuel_burnt, by = "id")
+summary(co2_db)
+```
+
+## Calculating EFs
+[ug * 1e-6 / g]
+First co, then co2...
+
+```{r co EFs}
+co_db <- dplyr::mutate(co_db, pol_fuel_mass_ratio = mass_emitted * 1e-6 / mass_fuel)
+summary(co_db$pol_fuel_mass_ratio)
+
+co2_db <- dplyr::mutate(co2_db, pol_fuel_mass_ratio = mass_emitted * 1e-6 / mass_fuel)
+summary(co2_db$pol_fuel_mass_ratio)
+```
+
+## Plotting EFs
+
+Then we make plots, first co, then co2...
+
+```{r co plots, echo=FALSE}
+ggplot(co_db, aes(x= id, pol_fuel_mass_ratio, colour = fuelcat)) +
+  geom_point() +
+  ggtitle("CO EFs by Test ID") +
+  xlab("Test ID") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45))
+ggplot(co_db, aes(x= stove, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  ggtitle("CO EFs by Stove") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(co_db, aes(x= stove, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_grid( ~ stovecat, scales = 'free') +
+  ggtitle("CO EFs by Stove Type") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(co_db, aes(x= stove, pol_fuel_mass_ratio, colour = stovecat)) +
+  geom_point() +
+  facet_grid( ~ fuelcat, scales = 'free') +
+  ggtitle("CO EFs by Fuel Type and Stove Type") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,  hjust = 0.9))
+ggplot(co_db, aes(x= id, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_wrap(fuelcat ~ stovecat) +
+  ggtitle("CO EFs by Stove and Fuel categories") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(filter(co_db, fuelcat == 'charcoal'), aes(x= id, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_grid( ~ stove, scales = 'free') +
+  ggtitle("CO EFs by Stove Type - Charcoal Stoves Only") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplot(co2_db, aes(x= id, pol_fuel_mass_ratio, colour = fuelcat)) +
+  geom_point() +
+  ggtitle("CO2 EFs by Test ID") +
+  xlab("Test ID") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45))
+ggplot(co2_db, aes(x= stove, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  ggtitle("CO2 EFs by Stove") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(co2_db, aes(x= stove, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_grid( ~ stovecat, scales = 'free') +
+  ggtitle("CO2 EFs by Stove Type") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(co2_db, aes(x= stove, pol_fuel_mass_ratio, colour = stovecat)) +
+  geom_point() +
+  facet_grid( ~ fuelcat, scales = 'free') +
+  ggtitle("CO2 EFs by Fuel Type and Stove Type") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,  hjust = 0.9))
+ggplot(co2_db, aes(x= id, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_wrap(fuelcat ~ stovecat) +
+  ggtitle("CO2 EFs by Stove and Fuel categories") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+ggplot(filter(co2_db, fuelcat == 'charcoal'), aes(x= id, pol_fuel_mass_ratio, colour = fuel)) +
+  geom_point() +
+  facet_grid( ~ stove, scales = 'free') +
+  ggtitle("CO2 EFs by Stove Type - Charcoal Stoves Only") +
+  xlab("Stove type") +
+  ylab("g emitted / g fuel burned") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
