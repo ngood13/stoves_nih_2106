@@ -50,12 +50,28 @@ shinyUI(fluidPage(
     tabPanel("Compare Pollutants",
       sidebarLayout(
         sidebarPanel(
-          selectInput('x_var', 'x axis:', colnames(df)),
-          selectInput('y_var', 'y axis:', colnames(df)),
-          selectInput('p_col', 'color by:', colnames(df)),
-          selectInput('p_facet', 'facet by:', colnames(df)),
-          selectInput('p_filter', 'filter by:', colnames(df)),
-          checkboxInput("p_bad","exclude bad data")
+          wellPanel(
+            tags$strong("left axis"),
+            selectInput("y_metric", "metric:", unit_list),
+            selectInput("y_inst", "instrument:", inst_list),
+            selectInput('y_pol', 'pollutant:', choices=character(0))
+          ),
+          wellPanel(
+            tags$strong("bottom axis"),
+            selectInput("x_metric", "metric:", unit_list),
+            selectInput("x_inst", "instrument:", inst_list),
+            selectInput('x_pol', 'pollutant:', choices=character(0))
+          ),
+          wellPanel(
+            tags$strong("appearance"),
+            selectInput('p_col', 'color by:', colnames(df)),
+            selectInput('p_facet', 'facet by:', colnames(df)),
+            selectInput('p_filter', 'filter by:', colnames(df)),
+            selectInput('p_group', 'group by:', colnames(df))
+          ),
+          wellPanel(
+            actionButton("updateButton", "update")
+          )
         ),
         mainPanel(
           plotOutput("stove_plot")
