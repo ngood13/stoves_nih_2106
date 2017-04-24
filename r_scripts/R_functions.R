@@ -482,7 +482,7 @@ plot_cormap <- function(data, cor_method){
 # plot color maps of replicate counts
 summarise_reps <- function(emission_factors, measure_names){
   
-  if(type = "inst") {
+  if(type == "inst") {
     replicates <- dplyr::distinct(emission_factors) %>%
       dplyr::filter(grepl(measure_names, inst)) %>%
       dplyr::group_by_(.dots = c("pol", "stove", "fuel", "fuelcat")) %>% 
