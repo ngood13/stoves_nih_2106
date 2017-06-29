@@ -47,9 +47,9 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE} 
   mass_fuel <- dplyr::left_join(mass_fuel,
-                                dplyr::select(samples, id, fuel),
+                                dplyr::select(test_info, id, fuel_type),
                                 by = "id") %>%
-               dplyr::left_join(fuel_properties, by = "fuel")
+               dplyr::left_join(fuel_properties, by = c("fuel_type" = "fuel"))
 ```
 
 # Carbon balance
