@@ -35,13 +35,12 @@ output:
 # Mass carbon per test
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
-  mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
+emissions_long$value <- as.numeric(emissions_long$value)
+
+mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
                dplyr::group_by(id) %>%
                dplyr::filter(value >= 0) %>%  # ignore negatives
-               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) %>%
-               dplyr::mutate(mass_carbon = 
-                               ifelse(grepl("^1A$|^2A$", id),
-                                      NA, mass_carbon))  # ignore tests with missing fivegas data
+               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) #since grav = 0 and ECOC not included as of 6/29/17, this number is bad? it's the mass of carbon emitted, not mass of pollutant emitted. 
 ```
 
 # Merge with fuel properties
