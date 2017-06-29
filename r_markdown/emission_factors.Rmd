@@ -57,7 +57,7 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 * Calculate fuel burned using carbon balance method
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE} 
-  mass_fuel <- dplyr::left_join(mass_fuel, fuel_burnt_test, by = "id") %>%
+  mass_fuel <- dplyr::left_join(mass_fuel, fuel_burnt_test, by = c("id", "fuel_type")) %>%
                dplyr::mutate(mass_fuel_c = mass_carbon * (1e-9) *
                                (1 / carbon_fraction)) %>%
                dplyr::mutate(mass_fuel_kg = fuelmass_total * (1e-3))
@@ -66,9 +66,9 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 * Filter out bad tests
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40} 
-  # NG: are these still unrealistic?
-  emission_factors <- dplyr::filter(emissions_long, qc != "bad") %>%
-                      dplyr::filter(grepl("^9B$|^6D$|^2A$|^8D", id) == FALSE)  # unrealistic values
+  # 
+  emission_factors <- dplyr::filter(emissions_long, qc != "bad") %>% #N1 carbonyl= bad, no end flow and clog noted. Only other bad QC marks are for tests L1 and W1 (see below) 
+                      dplyr::filter(grepl("^24$|^8$", id) == FALSE)  # test 24 (L1) didn't follow test protocol. Test 8 (W1) used a different type of fuel than other "w" tests
                
 ```
 
@@ -77,11 +77,12 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   emission_factors <- dplyr::left_join(emission_factors, 
                                 dplyr::select(mass_fuel, id, mass_fuel_c, 
-                                                         mass_fuel_kg, lhv), by = "id" ) %>%
+                                                         mass_fuel_kg, lhv, fuel_type), by = "id" ) %>%
                dplyr::mutate(mass_ef = ((value * 1e-3) / mass_fuel_kg),  # mg / kg
                              mass_c_ef = ((value * 1e-3) / mass_fuel_c),  # mg / kg
                              energy_ef = ((mass_ef * 1e-3) * lhv * 1e-3),
                              energy_c_ef = ((mass_c_ef * 1e-3) * lhv * 1e-3))  # g / MJ
+  is.na(emission_factors) <- sapply(emission_factors, is.infinite) #change "Inf" values induced by /0 to NA. 
 ```
 
 # Save
@@ -92,6 +93,18 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 ```
 
 # Plots
+
+## mass pollutant (mg) per kg fuel burnt
+```{r, fig.width= 15, fig.height= 20}
+ggplot(dplyr::filter(emission_factors, metric == "mass_carbon"), aes(x = id, y = mass_ef, color = fuel_type)) +
+    geom_point() +
+    theme_minimal() +
+    scale_y_log10() +
+    facet_grid(pol ~ fuel_type, scales = "free_x") +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    ggtitle("mass of pollutant emitted per kg of fuel burnt")
+```
+
 
 ## carbon emitted
 
@@ -130,7 +143,7 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40, eval=TRUE} 
   ggplot(dplyr::filter(emission_factors, metric == "mass_carbon"),
-                       aes(x = id, y = value, fill = inst), na.rm = TRUE) +
+                       aes(x = id, y = value, fill = pol), na.rm = TRUE) +
     geom_bar(stat = "identity")+
     coord_flip() +
     theme_minimal() +
@@ -143,7 +156,7 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40, eval=TRUE} 
   ggplot(dplyr::filter(emission_factors, metric == "mass_emitted"),
-        aes(x = id, y = value, fill = inst), na.rm = TRUE) +
+        aes(x = id, y = value, fill = pol), na.rm = TRUE) +
     geom_bar(stat = "identity")+
     coord_flip() +
     theme_minimal() +
