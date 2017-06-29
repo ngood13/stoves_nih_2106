@@ -94,15 +94,16 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
 
 # Plots
 
-## mass pollutant (mg) per kg fuel burnt
+## mass pollutant per mass fuel burnt (mg/kg)
 ```{r, fig.width= 15, fig.height= 20}
-ggplot(dplyr::filter(emission_factors, metric == "mass_carbon"), aes(x = id, y = mass_ef, color = fuel_type)) +
+mass_emitted <- filter(emission_factors, metric == "mass_emitted")
+ggplot(dplyr::filter(mass_emitted, fuel_type != "background"), aes(x = id, y = mass_ef, color = fuel_type)) +
     geom_point() +
     theme_minimal() +
-    scale_y_log10() +
-    facet_grid(pol ~ fuel_type, scales = "free_x") +
+    #scale_y_log10() +
+    facet_grid(pol ~ fuel_type, scales = "free") +
     theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-    ggtitle("mass of pollutant emitted per kg of fuel burnt")
+    ggtitle("mass of pollutant emitted per mass of fuel burnt (mg/kg)")
 ```
 
 
