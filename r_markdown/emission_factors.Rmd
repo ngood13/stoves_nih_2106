@@ -40,7 +40,7 @@ emissions_long$value <- as.numeric(emissions_long$value)
 mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
                dplyr::group_by(id) %>%
                dplyr::filter(value >= 0) %>%  # ignore negatives
-               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) #since grav = 0 and ECOC not included as of 6/29/17, this number is bad? it's the mass of carbon emitted, not mass of pollutant emitted. 
+               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) #since grav = 0 and ECOC not included as of 7/14/17, the mass carbon estimate is not accurate. However it's the mass of carbon emitted (not mass of pollutant emitted) which is used for mass balance estimates which are not being used currently. 
 ```
 
 # Merge with fuel properties
