@@ -78,10 +78,10 @@ mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
   emission_factors <- dplyr::left_join(emission_factors, 
                                 dplyr::select(mass_fuel, id, mass_fuel_c, 
                                                          mass_fuel_kg, lhv, fuel_type), by = "id" ) %>%
-               dplyr::mutate(mass_ef = ((value * 1e-3) / mass_fuel_kg),  # mg / kg
-                             mass_c_ef = ((value * 1e-3) / mass_fuel_c),  # mg / kg
-                             energy_ef = ((mass_ef * 1e-3) * lhv * 1e-3),
-                             energy_c_ef = ((mass_c_ef * 1e-3) * lhv * 1e-3))  # g / MJ
+               dplyr::mutate(mass_ef = ((value * 1e-6) / mass_fuel_kg),  # g / kg
+                             mass_c_ef = ((value * 1e-6) / mass_fuel_c),  # g / kg
+                             energy_ef = ((mass_ef * 1e-3) * lhv * 1e-3), # mg/mJ
+                             energy_c_ef = ((mass_c_ef * 1e-3) * lhv * 1e-3))  # mg / MJ
   is.na(emission_factors) <- sapply(emission_factors, is.infinite) #change "Inf" values induced by /0 to NA. 
 ```
 
@@ -103,7 +103,7 @@ ggplot(dplyr::filter(mass_emitted, fuel_type != "background"), aes(x = id, y = m
     #scale_y_log10() +
     facet_grid(pol ~ fuel_type, scales = "free") +
     theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-    ggtitle("mass of pollutant emitted per mass of fuel burnt (mg/kg)")
+    ggtitle("mass of pollutant emitted per mass of fuel burnt (g/kg)")
 ```
 
 
@@ -132,12 +132,12 @@ ggplot(dplyr::filter(mass_emitted, fuel_type != "background"), aes(x = id, y = m
 ## fuel burnt vs carbon
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width=10}  
-  ggplot(mass_fuel, aes(x = mass_fuel_kg, y = mass_fuel_c, color = fuel)) +
-    geom_point() +
-    theme_minimal() +
-    ylim(0, 2) +
-    xlab("mass of fuel (measured) [kg]") +
-    ylab("mass of fuel (carbon balance) [kg]")
+  # ggplot(mass_fuel, aes(x = mass_fuel_kg, y = mass_fuel_c, color = fuel)) +
+  #   geom_point() +
+  #   theme_minimal() +
+  #   ylim(0, 2) +
+  #   xlab("mass of fuel (measured) [kg]") +
+  #   ylab("mass of fuel (carbon balance) [kg]")
 ```
 
 ## carbon emitted (bar)
