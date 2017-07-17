@@ -81,7 +81,8 @@ Note tests have data in `t_1` column, except tests `15 20 22 28 34`.
 * extract notes
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
-  notes <- dplyr::filter(notes, grepl("temp|all", notes$notes) == TRUE)
+  notes <- dplyr::filter(notes,
+                         grepl("temp|all", notes) == TRUE)
 ```
 
 # Save merged file

@@ -35,22 +35,21 @@ output:
 # Mass carbon per test
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
-  mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
+emissions_long$value <- as.numeric(emissions_long$value)
+
+mass_fuel <- dplyr::filter(emissions_long, metric == "mass_carbon") %>%
                dplyr::group_by(id) %>%
                dplyr::filter(value >= 0) %>%  # ignore negatives
-               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) %>%
-               dplyr::mutate(mass_carbon = 
-                               ifelse(grepl("^1A$|^2A$", id),
-                                      NA, mass_carbon))  # ignore tests with missing fivegas data
+               dplyr::summarise(mass_carbon = sum(value, na.rm = TRUE)) #since grav = 0 and ECOC not included as of 7/14/17, the mass carbon estimate is not accurate. However it's the mass of carbon emitted (not mass of pollutant emitted) which is used for mass balance estimates which are not being used currently. 
 ```
 
 # Merge with fuel properties
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE} 
   mass_fuel <- dplyr::left_join(mass_fuel,
-                                dplyr::select(samples, id, fuel),
+                                dplyr::select(test_info, id, fuel_type),
                                 by = "id") %>%
-               dplyr::left_join(fuel_properties, by = "fuel")
+               dplyr::left_join(fuel_properties, by = c("fuel_type" = "fuel"))
 ```
 
 # Carbon balance
@@ -58,18 +57,18 @@ output:
 * Calculate fuel burned using carbon balance method
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE} 
-  mass_fuel <- dplyr::left_join(mass_fuel, fuel_burnt, by = "id") %>%
+  mass_fuel <- dplyr::left_join(mass_fuel, fuel_burnt_test, by = c("id", "fuel_type")) %>%
                dplyr::mutate(mass_fuel_c = mass_carbon * (1e-9) *
                                (1 / carbon_fraction)) %>%
-               dplyr::mutate(mass_fuel_kg = mass_fuel * (1e-3))
+               dplyr::mutate(mass_fuel_kg = fuelmass_total * (1e-3))
 ```
 
 * Filter out bad tests
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40} 
-  # NG: are these still unrealistic?
-  emission_factors <- dplyr::filter(emissions_long, qc != "bad") %>%
-                      dplyr::filter(grepl("^9B$|^6D$|^2A$|^8D", id) == FALSE)  # unrealistic values
+  # 
+  emission_factors <- dplyr::filter(emissions_long, qc != "bad") %>% #N1 carbonyl= bad, no end flow and clog noted. Only other bad QC marks are for tests L1 and W1 (see below) 
+                      dplyr::filter(grepl("^24$|^8$", id) == FALSE)  # test 24 (L1) didn't follow test protocol. Test 8 (W1) used a different type of fuel than other "w" tests
                
 ```
 
@@ -78,11 +77,12 @@ output:
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE}
   emission_factors <- dplyr::left_join(emission_factors, 
                                 dplyr::select(mass_fuel, id, mass_fuel_c, 
-                                                         mass_fuel_kg, lhv), by = "id" ) %>%
-               dplyr::mutate(mass_ef = ((value * 1e-3) / mass_fuel_kg),  # mg / kg
-                             mass_c_ef = ((value * 1e-3) / mass_fuel_c),  # mg / kg
-                             energy_ef = ((mass_ef * 1e-3) * lhv * 1e-3),
-                             energy_c_ef = ((mass_c_ef * 1e-3) * lhv * 1e-3))  # g / MJ
+                                                         mass_fuel_kg, lhv, fuel_type), by = "id" ) %>%
+               dplyr::mutate(mass_ef = ((value * 1e-6) / mass_fuel_kg),  # g / kg
+                             mass_c_ef = ((value * 1e-6) / mass_fuel_c),  # g / kg
+                             energy_ef = ((mass_ef * 1e-3) * lhv * 1e-3), # mg/mJ
+                             energy_c_ef = ((mass_c_ef * 1e-3) * lhv * 1e-3))  # mg / MJ
+  is.na(emission_factors) <- sapply(emission_factors, is.infinite) #change "Inf" values induced by /0 to NA. 
 ```
 
 # Save
@@ -93,6 +93,19 @@ output:
 ```
 
 # Plots
+
+## mass pollutant per mass fuel burnt (mg/kg)
+```{r, fig.width= 15, fig.height= 20}
+mass_emitted <- filter(emission_factors, metric == "mass_emitted")
+ggplot(dplyr::filter(mass_emitted, fuel_type != "background"), aes(x = id, y = mass_ef, color = fuel_type)) +
+    geom_point() +
+    theme_minimal() +
+    #scale_y_log10() +
+    facet_grid(pol ~ fuel_type, scales = "free") +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    ggtitle("mass of pollutant emitted per mass of fuel burnt (g/kg)")
+```
+
 
 ## carbon emitted
 
@@ -119,19 +132,19 @@ output:
 ## fuel burnt vs carbon
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=FALSE, fig.width=10}  
-  ggplot(mass_fuel, aes(x = mass_fuel_kg, y = mass_fuel_c, color = fuel)) +
-    geom_point() +
-    theme_minimal() +
-    ylim(0, 2) +
-    xlab("mass of fuel (measured) [kg]") +
-    ylab("mass of fuel (carbon balance) [kg]")
+  # ggplot(mass_fuel, aes(x = mass_fuel_kg, y = mass_fuel_c, color = fuel)) +
+  #   geom_point() +
+  #   theme_minimal() +
+  #   ylim(0, 2) +
+  #   xlab("mass of fuel (measured) [kg]") +
+  #   ylab("mass of fuel (carbon balance) [kg]")
 ```
 
 ## carbon emitted (bar)
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40, eval=TRUE} 
   ggplot(dplyr::filter(emission_factors, metric == "mass_carbon"),
-                       aes(x = id, y = value, fill = inst), na.rm = TRUE) +
+                       aes(x = id, y = value, fill = pol), na.rm = TRUE) +
     geom_bar(stat = "identity")+
     coord_flip() +
     theme_minimal() +
@@ -144,7 +157,7 @@ output:
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results='markup', cache=TRUE, fig.width=10, fig.height=40, eval=TRUE} 
   ggplot(dplyr::filter(emission_factors, metric == "mass_emitted"),
-        aes(x = id, y = value, fill = inst), na.rm = TRUE) +
+        aes(x = id, y = value, fill = pol), na.rm = TRUE) +
     geom_bar(stat = "identity")+
     coord_flip() +
     theme_minimal() +
