@@ -20,14 +20,20 @@ output: html_document
   #1. set variable types from character -> factor
   #3. removes duplicate rows that were remnants of when real-time monitors had timestamps, so multiple rows per test even though the mass_ef was a single value for the test. 
   ef_bymass <- emission_factors %>%
+              filter(qc != "bad") %>%
                dplyr::mutate(fuel = factor(fuel),
                       qc = factor(qc),
                       pol = factor(pol)) %>%
                dplyr::distinct()
 ```
 
+# check amount of data is correct
 
-* NEED TO GO BACK AND FIGURE OUT WHERE THESE VALUES DISAPPEARED AND RECOVER THE DATA. 
+* expect 25 pollutants x 
+```{r}
+table(ef_bymass$id)
+```
+
 
 
 # Summarize emissions factors by pollutant and fuel type
